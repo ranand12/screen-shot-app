@@ -70,30 +70,48 @@ class ScreenshotCapturer:
             # Capture the screen
             screenshot = ImageGrab.grab()
             
-            # Add click indicator
-            draw = ImageDraw.Draw(screenshot)
-            radius = 30
+            # Get the actual screenshot dimensions
+            screenshot_width, screenshot_height = screenshot.size
             
-            # Outer circle (glow)
-            draw.ellipse(
-                [click_x - radius - 5, click_y - radius - 5,
-                 click_x + radius + 5, click_y + radius + 5],
-                outline=(255, 0, 0, 80),
-                width=8
+            # macOS Retina displays have a scale factor (usually 2x)
+            # We need to scale the click coordinates to match the screenshot resolution
+            import AppKit
+            screen = AppKit.NSScreen.mainScreen()
+            scale_factor = screen.backingScaleFactor()
+            
+            # Scale the click coordinates
+            scaled_x = int(click_x * scale_factor)
+            scaled_y = int(click_y * scale_factor)
+            
+            print(f"  Original coords: ({click_x}, {click_y})")
+            print(f"  Scale factor: {scale_factor}")
+            print(f"  Scaled coords: ({scaled_x}, {scaled_y})")
+            print(f"  Screenshot size: {screenshot_width}x{screenshot_height}")
+            
+            # Add click indicator - ONLY an arrow pointing to the click location
+            draw = ImageDraw.Draw(screenshot, 'RGBA')
+            
+            # Arrow configuration
+            arrow_length = int(60 * scale_factor)  # Length of arrow from top
+            arrow_start_y = scaled_y - arrow_length
+            arrow_width = int(4 * scale_factor)  # Thicker arrow for visibility
+            
+            # Draw arrow line pointing down to click location
+            draw.line(
+                [scaled_x, arrow_start_y, scaled_x, scaled_y],
+                fill=(255, 0, 0),
+                width=arrow_width
             )
             
-            # Main circle
-            draw.ellipse(
-                [click_x - radius, click_y - radius,
-                 click_x + radius, click_y + radius],
-                outline=(255, 0, 0),
-                width=4
-            )
-            
-            # Inner dot
-            draw.ellipse(
-                [click_x - 5, click_y - 5,
-                 click_x + 5, click_y + 5],
+            # Draw arrow head (triangle pointing down)
+            arrow_head_size = int(12 * scale_factor)  # Width of arrow head
+            arrow_head_height = int(16 * scale_factor)  # Height of arrow head
+            draw.polygon(
+                [
+                    (scaled_x, scaled_y),  # Point at click location
+                    (scaled_x - arrow_head_size, scaled_y - arrow_head_height),
+                    (scaled_x + arrow_head_size, scaled_y - arrow_head_height)
+                ],
                 fill=(255, 0, 0)
             )
             
